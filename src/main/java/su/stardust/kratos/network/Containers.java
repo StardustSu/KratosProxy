@@ -255,7 +255,7 @@ public class Containers {
 
         public static void loadCache(int sid, String free) {
             Helper.serverId = sid;
-            for (String split : free.split("\n")) {
+            for (String split : free.split(",")) {
                 if (split.length() < 2)
                     continue;
                 freePorts.add(Integer.parseInt(split));

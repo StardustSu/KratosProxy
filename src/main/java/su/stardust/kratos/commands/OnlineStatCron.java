@@ -40,8 +40,8 @@ public class OnlineStatCron implements SimpleCommand {
             data.add("\"" + entry.getKey() + "\": " + entry.getValue().get());
         }
         var json = "{" + String.join(",", data) + "}";
-        StarLogger.debug(String.valueOf(full));
-        StarLogger.debug(json);
+        // StarLogger.debug(String.valueOf(full));
+        // StarLogger.debug(json);
         Genesis.sendOnlineStats(full, json);
     }
 

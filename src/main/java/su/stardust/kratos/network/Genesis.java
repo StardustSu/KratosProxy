@@ -184,7 +184,7 @@ public class Genesis {
     public static void sendOnlineStats(int full, String byType) {
         try {
             var data = "{\"online\":" + full + ",\"modes\":\"" + byType.replace("\"", "\\\"") + "\"}";
-            StarLogger.debug(data);
+            // StarLogger.debug(data);
             post("/genesis/stats/online", data);
         } catch (Exception ex) {
             ex.printStackTrace();

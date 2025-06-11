@@ -16,6 +16,7 @@ import lombok.SneakyThrows;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import su.stardust.kratos.commands.*;
+import su.stardust.kratos.listeners.BuildListener;
 import su.stardust.kratos.listeners.StreamListener;
 import su.stardust.kratos.network.Containers;
 import su.stardust.kratos.network.Genesis;
@@ -39,6 +40,7 @@ import java.util.Optional;
         })
 public class Kratos {
 
+    public static final ArrayList<String> verboseLogsPlayers = new ArrayList<>();
     public static final MinecraftChannelIdentifier KRATOS_BUILD = MinecraftChannelIdentifier.from("kratos:build");
 
     @Getter
@@ -67,6 +69,7 @@ public class Kratos {
         Genesis.getContainersState();
 
         server.getEventManager().register(this, new StreamListener());
+        server.getEventManager().register(this, new BuildListener());
 
         registerCommand(new FindServerCommand(), "finds");
         registerCommand(new BootCommand(), "boot");
@@ -79,7 +82,10 @@ public class Kratos {
         registerCommand(new RejoinCommand(), "rejoin");
         registerCommand(new OnlineStatCron(), "onlinestat");
         registerCommand(new BuildCommand(), "build");
+        registerCommand(new VerboseCommand(), "proxyverbose");
         registerCommand(new MsgCommand(), "msg", "t", "tell", "message", "w", "whisper");
+
+        server.getChannelRegistrar().register(KRATOS_BUILD);
     }
 
     @Subscribe
@@ -183,5 +189,13 @@ public class Kratos {
                 .plugin(this)
                 .build();
         server.getCommandManager().register(cmd, command);
+    }
+
+    public static void logVerbose(String msg) {
+        verboseLogsPlayers.forEach(name -> {
+            Kratos.getServer().getPlayer(name).ifPresent(p -> {
+                p.sendMessage(Text.of(msg));
+            });
+        });
     }
 }
