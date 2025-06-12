@@ -29,9 +29,9 @@ dependencies {
     compileOnly("org.projectlombok:lombok:1.18.38")
     annotationProcessor("org.projectlombok:lombok:1.18.38")
 
-    implementation "com.github.docker-java:docker-java:3.3.3"
-    implementation "com.rabbitmq:amqp-client:5.20.0"
     compileOnly("net.luckperms:api:5.4")
+
+    implementation "com.rabbitmq:amqp-client:5.20.0"
 }
 
 tasks {
