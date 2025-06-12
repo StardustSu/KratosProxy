@@ -12,25 +12,14 @@ import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerInfo;
 import lombok.Getter;
-import lombok.SneakyThrows;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import su.stardust.kratos.commands.*;
-import su.stardust.kratos.listeners.BuildListener;
 import su.stardust.kratos.listeners.StreamListener;
-import su.stardust.kratos.network.Containers;
-import su.stardust.kratos.network.Genesis;
-import su.stardust.kratos.network.GenesisInfo;
-import su.stardust.kratos.network.Keepalive;
+import su.stardust.kratos.listeners.PlayListener;
 import su.stardust.kratos.network.Messenger;
-import su.stardust.kratos.network.Containers.Container;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
-import java.net.URI;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Optional;
 
@@ -42,6 +31,7 @@ public class Kratos {
 
     public static final ArrayList<String> verboseLogsPlayers = new ArrayList<>();
     public static final MinecraftChannelIdentifier KRATOS_BUILD = MinecraftChannelIdentifier.from("kratos:build");
+    public static final MinecraftChannelIdentifier KRATOS_PLAY = MinecraftChannelIdentifier.from("kratos:play");
 
     @Getter
     private static Kratos instance;
@@ -59,46 +49,33 @@ public class Kratos {
         _server = server;
 
         Messenger.initializeRabbit();
-        Containers.initializeDocker();
-        Keepalive.initialize();
-        GenesisInfo.run();
-
-        // var boot = loadInstructions("proxy_boot");
-        // useInstructions(boot);
-
-        Genesis.getContainersState();
+        Messenger.consumeQueue("PROXY_CONTROL", Kratos::handleControlMessage);
 
         server.getEventManager().register(this, new StreamListener());
-        server.getEventManager().register(this, new BuildListener());
+        server.getEventManager().register(this, new PlayListener());
 
-        registerCommand(new FindServerCommand(), "finds");
-        registerCommand(new BootCommand(), "boot");
-        registerCommand(new ShutdownCommand(), "sendstop");
-        registerCommand(new UpdateCommand(), "update");
-        registerCommand(new UpgradeCommand(), "upgrade", "migrate");
-        registerCommand(new WhatIsCommand(), "whatis");
         registerCommand(new LobbyCommand(), "lobby", "l", "hub");
-        registerCommand(new PlayCommand(), "play");
-        registerCommand(new RejoinCommand(), "rejoin");
-        registerCommand(new OnlineStatCron(), "onlinestat");
-        registerCommand(new BuildCommand(), "build");
         registerCommand(new VerboseCommand(), "proxyverbose");
         registerCommand(new MsgCommand(), "msg", "t", "tell", "message", "w", "whisper");
+        registerCommand(new PartyCommand(), "party", "p");
+        registerCommand(new PlayCommand(), "play");
 
         server.getChannelRegistrar().register(KRATOS_BUILD);
+        server.getChannelRegistrar().register(KRATOS_PLAY);
     }
 
     @Subscribe
     public void onProxyShutdown(ProxyShutdownEvent e) {
         // Containers.getAll().forEach(c -> Containers.delete(c.id(), false));
-        Genesis.saveContainersState();
+    }
+
+    public static void registerServer(String id, String address, int port) {
+        StarLogger.debug("Registering " + id + " at " + address + ":" + port);
+        _server.registerServer(new ServerInfo(id, new InetSocketAddress(address, port)));
     }
 
     public static void registerServer(String id, int port) {
-        StarLogger.debug("Registering " + id + " on port " + port);
-        _server.registerServer(new ServerInfo(id, new InetSocketAddress(
-                "127.0.0.1",
-                port)));
+        registerServer(id, "127.0.0.1", port);
     }
 
     public static void unregisterServer(String id) {
@@ -135,51 +112,16 @@ public class Kratos {
         var user = env.getOrDefault("RABBIT_USER", "kratos");
         var pass = env.getOrDefault("RABBIT_PASS", "u_)KgHeHk4qedZ");
         var vhost = env.getOrDefault("RABBIT_VHOST", "kratos");
-        return new String[] { host, user, pass, vhost };
+        return new String[]{host, user, pass, vhost};
     }
 
-    @SneakyThrows
-    public static String[] loadInstructions(String instructions) {
-        URL url = URI.create("https://api.kratosmc.ru/static/" + instructions).toURL();
-        HttpURLConnection con = (HttpURLConnection) url.openConnection();
-        con.setRequestMethod("GET");
-        int status = con.getResponseCode();
-        if (status != 200) {
-            StarLogger.fatal("Could not read instruction " + instructions);
-            return new String[] {};
-        }
-        BufferedReader in = new BufferedReader(
-                new InputStreamReader(con.getInputStream()));
-        String inputLine;
-        StringBuilder content = new StringBuilder();
-        while ((inputLine = in.readLine()) != null) {
-            content.append(inputLine);
-            content.append("\n");
-        }
-        in.close();
-        StarLogger.debug("Read " + instructions + ": ");
-        var value = content.toString().split("\n");
-        for (String s : value) {
-            StarLogger.debug("| " + s + " |");
-        }
-        return value;
-    }
 
-    public static void useInstructions(String... instructions) {
-        for (String instruction : instructions) {
-            var args = instruction.split(" ");
-            Containers.spinUp(args[0], args[1], args[2]);
-        }
-    }
 
     public static @Nullable RegisteredServer pickLobby() {
-        var lobbies = Keepalive.getAlive("lobby");
-        if (lobbies.isEmpty())
-            return null;
-        // todo. filtering
-        var lobby = lobbies.getFirst().id();
-        var server = getServer(lobby);
-        return server.orElse(null);
+        return _server.getAllServers().stream()
+                .filter(s -> s.getServerInfo().getName().startsWith("lobby"))
+                .findFirst()
+                .orElse(null);
     }
 
     private void registerCommand(Command command, String... aliases) {
@@ -197,5 +139,72 @@ public class Kratos {
                 p.sendMessage(Text.of(msg));
             });
         });
+    }
+
+    private static void handleControlMessage(String message) {
+        var args = message.split(" ");
+        if (args.length == 0)
+            return;
+
+        var command = args[0].toUpperCase();
+        switch (command) {
+            case "SEND" -> {
+                if (args.length != 3) return;
+                var playerName = args[1];
+                var serverName = args[2];
+                var playerOpt = _server.getPlayer(playerName);
+                var serverOpt = _server.getServer(serverName);
+                if (playerOpt.isEmpty() || serverOpt.isEmpty()) {
+                    StarLogger.warn("Cannot route " + playerName + " to " + serverName + " - missing player or server");
+                    return;
+                }
+                playerOpt.get().createConnectionRequest(serverOpt.get()).connectWithIndication();
+            }
+            case "REGISTER" -> {
+                if (args.length != 4) return;
+                var name = args[1];
+                var addr = args[2];
+                int port;
+                try {
+                    port = Integer.parseInt(args[3]);
+                } catch (NumberFormatException e) {
+                    StarLogger.warn("Invalid port for REGISTER: " + args[3]);
+                    return;
+                }
+                registerServer(name, addr, port);
+            }
+            case "UNREGISTER" -> {
+                if (args.length != 2) return;
+                var param = args[1];
+                if (_server.getServer(param).isPresent()) {
+                    unregisterServer(param);
+                    return;
+                }
+                var hostPort = param.split(":");
+                if (hostPort.length == 2) {
+                    try {
+                        int port = Integer.parseInt(hostPort[1]);
+                        _server.getAllServers().stream()
+                                .filter(s -> s.getServerInfo().getAddress().getHostString().equals(hostPort[0]) &&
+                                        s.getServerInfo().getAddress().getPort() == port)
+                                .findFirst()
+                                .ifPresent(s -> unregisterServer(s.getServerInfo().getName()));
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+            }
+            case "REDIRECT" -> {
+                if (args.length != 3) return;
+                var fromOpt = _server.getServer(args[1]);
+                var toOpt = _server.getServer(args[2]);
+                if (fromOpt.isEmpty() || toOpt.isEmpty()) {
+                    StarLogger.warn("Cannot redirect - missing server");
+                    return;
+                }
+                var to = toOpt.get();
+                fromOpt.get().getPlayersConnected().forEach(p -> p.createConnectionRequest(to).connectWithIndication());
+            }
+            default -> StarLogger.warn("Unknown control command: " + command);
+        }
     }
 }

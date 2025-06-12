@@ -34,7 +34,9 @@ public class Messenger {
             StarLogger.fatal("Shutting down");
             Kratos.getServer().shutdown();
         } finally {
-            StarLogger.success("Connected to RabbitMQ!");
+            if (channel != null) {
+                StarLogger.success("Connected to RabbitMQ!");
+            }
         }
     }
 
@@ -55,7 +57,8 @@ public class Messenger {
     public static void send(String queue, String message) {
         try {
             declareQueue(queue);
-            if (queue != "KEEPALIVE") StarLogger.debug("* Sending " + queue + ": " + message);
+            if (!"KEEPALIVE".equals(queue))
+                StarLogger.debug("* Sending " + queue + ": " + message);
             channel.basicPublish("", queue, null, message.getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
             StarLogger.error("Could not open RabbitMQ channel! Shutting down...");
