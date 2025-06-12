@@ -8,7 +8,6 @@ import su.stardust.kratos.party.Party;
 import su.stardust.kratos.party.PartyManager;
 
 import java.util.List;
-import java.util.UUID;
 
 public class PartyCommand implements SimpleCommand {
 
@@ -62,12 +61,9 @@ public class PartyCommand implements SimpleCommand {
             return;
         }
         var builder = new StringBuilder("&aУчастники: ");
-        for (UUID id : party.getMembers()) {
-            var member = PartyManager.uuidToPlayer(id);
-            if (member != null) {
-                if (id.equals(party.getLeader())) builder.append("&6");
-                builder.append(member.getUsername()).append("&f, ");
-            }
+        for (String name : party.getMembers()) {
+            if (name.equals(party.getLeader())) builder.append("&6");
+            builder.append(name).append("&f, ");
         }
         var msg = builder.toString();
         if (msg.endsWith(", ")) msg = msg.substring(0, msg.length() - 2);
@@ -80,13 +76,24 @@ public class PartyCommand implements SimpleCommand {
             player.sendMessage(Text.of("&cВы не в пати."));
             return;
         }
+        boolean wasLeader = party.getLeader().equals(player.getUsername());
         PartyManager.removePlayer(player);
         player.sendMessage(Text.of("&aВы покинули пати."));
+        if (!party.getMembers().isEmpty()) {
+            PartyManager.broadcast(party, "&e" + player.getUsername() + " покинул пати.");
+            if (wasLeader) {
+                var newLeaderName = party.getLeader();
+                var newLeader = PartyManager.nameToPlayer(newLeaderName);
+                if (newLeader != null) {
+                    newLeader.sendMessage(Text.of("&eТеперь вы лидер пати."));
+                }
+            }
+        }
     }
 
     private void warp(Player player) {
         var party = PartyManager.getParty(player);
-        if (party == null || !party.getLeader().equals(player.getUniqueId())) {
+        if (party == null || !party.getLeader().equals(player.getUsername())) {
             player.sendMessage(Text.of("&cТолько лидер может использовать warp."));
             return;
         }
@@ -95,8 +102,8 @@ public class PartyCommand implements SimpleCommand {
             player.sendMessage(Text.of("&cВы не на сервере."));
             return;
         }
-        for (UUID id : party.getMembers()) {
-            var p = PartyManager.uuidToPlayer(id);
+        for (String name : party.getMembers()) {
+            var p = PartyManager.nameToPlayer(name);
             if (p != null && !p.equals(player)) {
                 p.createConnectionRequest(server.getServer()).connectWithIndication();
             }
@@ -105,27 +112,28 @@ public class PartyCommand implements SimpleCommand {
 
     private void promote(Player player, String name) {
         var party = PartyManager.getParty(player);
-        if (party == null || !party.getLeader().equals(player.getUniqueId())) {
+        if (party == null || !party.getLeader().equals(player.getUsername())) {
             player.sendMessage(Text.of("&cТолько лидер может повышать участников."));
             return;
         }
         var target = Kratos.getServer().getPlayer(name);
-        if (target.isEmpty() || !party.getMembers().contains(target.get().getUniqueId())) {
+        if (target.isEmpty() || !party.getMembers().contains(target.get().getUsername())) {
             player.sendMessage(Text.of("&cИгрок не в вашей пати."));
             return;
         }
-        party.setLeader(target.get().getUniqueId());
-        player.sendMessage(Text.of("&aНовый лидер: " + target.get().getUsername()));
+        party.setLeader(target.get().getUsername());
+        PartyManager.broadcast(party, "&aНовый лидер пати: " + target.get().getUsername());
+        target.get().sendMessage(Text.of("&eТеперь вы лидер пати."));
     }
 
     private void kick(Player player, String name) {
         var party = PartyManager.getParty(player);
-        if (party == null || !party.getLeader().equals(player.getUniqueId())) {
+        if (party == null || !party.getLeader().equals(player.getUsername())) {
             player.sendMessage(Text.of("&cТолько лидер может кикать участников."));
             return;
         }
         var target = Kratos.getServer().getPlayer(name);
-        if (target.isEmpty() || !party.getMembers().contains(target.get().getUniqueId())) {
+        if (target.isEmpty() || !party.getMembers().contains(target.get().getUsername())) {
             player.sendMessage(Text.of("&cИгрок не в вашей пати."));
             return;
         }
@@ -133,22 +141,25 @@ public class PartyCommand implements SimpleCommand {
             player.sendMessage(Text.of("&cНельзя кикнуть себя."));
             return;
         }
+        boolean wasLeader = party.getLeader().equals(target.get().getUsername());
         PartyManager.removePlayer(target.get());
         target.get().sendMessage(Text.of("&cВас кикнули из пати."));
+        if (!party.getMembers().isEmpty()) {
+            PartyManager.broadcast(party, "&c" + player.getUsername() + " исключил " + target.get().getUsername() + " из пати.");
+            if (wasLeader) {
+                var newLeader = PartyManager.nameToPlayer(party.getLeader());
+                if (newLeader != null) newLeader.sendMessage(Text.of("&eТеперь вы лидер пати."));
+            }
+        }
     }
 
     private void disband(Player player) {
         var party = PartyManager.getParty(player);
-        if (party == null || !party.getLeader().equals(player.getUniqueId())) {
+        if (party == null || !party.getLeader().equals(player.getUsername())) {
             player.sendMessage(Text.of("&cТолько лидер может распустить пати."));
             return;
         }
-        for (UUID id : PartyManager.getMembers(party)) {
-            var p = PartyManager.uuidToPlayer(id);
-            if (p != null) {
-                p.sendMessage(Text.of("&cПати была распущена."));
-            }
-        }
+        PartyManager.broadcast(party, "&cПати была распущена.");
         PartyManager.disband(party);
     }
 
@@ -163,7 +174,7 @@ public class PartyCommand implements SimpleCommand {
         if (party == null) {
             party = PartyManager.getOrCreateParty(player);
         }
-        if (!party.getLeader().equals(player.getUniqueId())) {
+        if (!party.getLeader().equals(player.getUsername())) {
             player.sendMessage(Text.of("&cТолько лидер может приглашать."));
             return;
         }
@@ -173,12 +184,12 @@ public class PartyCommand implements SimpleCommand {
         }
         PartyManager.addPlayer(party, target);
         target.sendMessage(Text.of("&aВы были добавлены в пати."));
-        player.sendMessage(Text.of("&aИгрок добавлен в пати."));
+        PartyManager.broadcast(party, "&a" + target.getUsername() + " присоединился к пати.");
     }
 
     private void togglePrivate(Player player) {
         var party = PartyManager.getParty(player);
-        if (party == null || !party.getLeader().equals(player.getUniqueId())) {
+        if (party == null || !party.getLeader().equals(player.getUsername())) {
             player.sendMessage(Text.of("&cТолько лидер может менять приватность."));
             return;
         }
@@ -187,7 +198,7 @@ public class PartyCommand implements SimpleCommand {
             return;
         }
         party.setPrivateGames(!party.isPrivateGames());
-        player.sendMessage(Text.of("&aПриватные игры: " + (party.isPrivateGames() ? "включены" : "выключены")));
+        PartyManager.broadcast(party, "&aПриватные игры: " + (party.isPrivateGames() ? "включены" : "выключены"));
     }
 
     @Override

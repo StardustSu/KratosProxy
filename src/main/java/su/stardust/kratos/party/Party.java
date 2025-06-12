@@ -4,27 +4,26 @@ import com.velocitypowered.api.proxy.Player;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 
 public class Party {
-    private UUID leader;
-    private final Set<UUID> members = new HashSet<>();
+    private String leader;
+    private final Set<String> members = new HashSet<>();
     private boolean privateGames = false;
 
-    public Party(UUID leader) {
+    public Party(String leader) {
         this.leader = leader;
         members.add(leader);
     }
 
-    public UUID getLeader() {
+    public String getLeader() {
         return leader;
     }
 
-    public void setLeader(UUID leader) {
+    public void setLeader(String leader) {
         this.leader = leader;
     }
 
-    public Set<UUID> getMembers() {
+    public Set<String> getMembers() {
         return members;
     }
 
@@ -37,10 +36,10 @@ public class Party {
     }
 
     public boolean addMember(Player player) {
-        return members.add(player.getUniqueId());
+        return members.add(player.getUsername());
     }
 
     public boolean removeMember(Player player) {
-        return members.remove(player.getUniqueId());
+        return members.remove(player.getUsername());
     }
 }

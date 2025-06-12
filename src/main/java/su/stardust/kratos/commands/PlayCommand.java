@@ -28,7 +28,7 @@ public class PlayCommand implements SimpleCommand {
 
     public static void performPlay(Player player, String game) {
         var party = PartyManager.getParty(player);
-        if (party != null && !party.getLeader().equals(player.getUniqueId())) {
+        if (party != null && !party.getLeader().equals(player.getUsername())) {
             player.sendMessage(Text.of("&cТолько лидер пати может искать игру."));
             return;
         }
@@ -37,7 +37,7 @@ public class PlayCommand implements SimpleCommand {
         String members = player.getUsername();
         if (party != null) {
             var names = party.getMembers().stream()
-                    .map(PartyManager::uuidToPlayer)
+                    .map(PartyManager::nameToPlayer)
                     .filter(Objects::nonNull)
                     .map(Player::getUsername)
                     .collect(Collectors.toList());
