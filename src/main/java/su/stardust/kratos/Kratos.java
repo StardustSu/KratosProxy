@@ -20,8 +20,9 @@ import su.stardust.kratos.listeners.PlayListener;
 import su.stardust.kratos.network.Messenger;
 
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 import java.util.Optional;
+import java.util.Set;
+import java.util.HashSet;
 
 @Plugin(id = "kratosproxy", name = "KratosProxy", version = BuildConstants.VERSION, description = "<3", authors = {
         "Nico" }, dependencies = {
@@ -29,7 +30,7 @@ import java.util.Optional;
         })
 public class Kratos {
 
-    public static final ArrayList<String> verboseLogsPlayers = new ArrayList<>();
+    public static final Set<String> verboseLogsPlayers = new HashSet<>();
     public static final MinecraftChannelIdentifier KRATOS_BUILD = MinecraftChannelIdentifier.from("kratos:build");
     public static final MinecraftChannelIdentifier KRATOS_PLAY = MinecraftChannelIdentifier.from("kratos:play");
 
