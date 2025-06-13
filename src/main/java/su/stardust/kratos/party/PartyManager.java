@@ -3,7 +3,12 @@ package su.stardust.kratos.party;
 import com.velocitypowered.api.proxy.Player;
 import su.stardust.kratos.Kratos;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import su.stardust.kratos.Text;
 
 public class PartyManager {
@@ -42,9 +47,7 @@ public class PartyManager {
     }
 
     public static void disband(Party party) {
-        for (String name : new HashSet<>(party.getMembers())) {
-            parties.remove(name);
-        }
+        parties.keySet().removeAll(party.getMembers());
         party.getMembers().clear();
     }
 
@@ -57,11 +60,9 @@ public class PartyManager {
     }
 
     public static void broadcast(Party party, String message) {
-        for (String name : party.getMembers()) {
-            var p = nameToPlayer(name);
-            if (p != null) {
-                p.sendMessage(Text.of(message));
-            }
-        }
+        party.getMembers().stream()
+                .map(PartyManager::nameToPlayer)
+                .filter(Objects::nonNull)
+                .forEach(p -> p.sendMessage(Text.of(message)));
     }
 }

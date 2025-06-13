@@ -8,7 +8,6 @@ import su.stardust.kratos.party.PartyManager;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class PlayCommand implements SimpleCommand {
     @Override
@@ -40,7 +39,7 @@ public class PlayCommand implements SimpleCommand {
                     .map(PartyManager::nameToPlayer)
                     .filter(Objects::nonNull)
                     .map(Player::getUsername)
-                    .collect(Collectors.toList());
+                    .toList();
             count = names.size();
             members = String.join(",", names);
         }
