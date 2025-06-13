@@ -8,14 +8,15 @@ import su.stardust.kratos.StarLogger;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
 public class Messenger {
     private static Connection rabbit;
     private static Channel channel;
-    private static final ArrayList<String> queues = new ArrayList<>();
+    private static final Set<String> queues = new HashSet<>();
 
     public static void initializeRabbit() {
         if (rabbit != null || channel != null) return;
