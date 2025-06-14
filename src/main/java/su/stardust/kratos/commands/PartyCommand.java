@@ -10,6 +10,8 @@ import java.util.List;
 
 public class PartyCommand implements SimpleCommand {
 
+    private static final java.util.Set<String> TARGET_COMMANDS = java.util.Set.of("promote", "kick", "invite");
+
     @Override
     public void execute(Invocation invocation) {
         if (!(invocation.source() instanceof Player player)) {
@@ -59,16 +61,10 @@ public class PartyCommand implements SimpleCommand {
             player.sendMessage(Text.of("&eВы не в пати."));
             return;
         }
-        var builder = new StringBuilder("&aУчастники: ");
-        for (String name : party.getMembers()) {
-            if (name.equals(party.getLeader()))
-                builder.append("&6");
-            builder.append(name).append("&f, ");
-        }
-        var msg = builder.toString();
-        if (msg.endsWith(", "))
-            msg = msg.substring(0, msg.length() - 2);
-        player.sendMessage(Text.of(msg));
+        var members = party.getMembers().stream()
+                .map(n -> n.equals(party.getLeader()) ? "&6" + n + "&f" : n)
+                .toList();
+        player.sendMessage(Text.of("&aУчастники: " + String.join(", ", members)));
     }
 
     private void leave(Player player) {
