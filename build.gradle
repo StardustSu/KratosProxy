@@ -69,24 +69,16 @@ sourceSets.main.java.srcDir(generateTemplates.map { it.outputs })
 project.idea.project.settings.taskTriggers.afterSync generateTemplates
 project.eclipse.synchronizationTasks(generateTemplates)
 
-remotes {
-    kratosmc {
-        host = 'play.kratosmc.ru'
-        user = 'root'
-        identity = file('/root/.ssh/nico')
-    }
-}
-
 tasks {
     shadowJar {
         archiveFileName.set("Kratos-shadowed-${version}.jar")
-        doLast {
-            ssh.run {
-                session(remotes.kratosmc) {
-                    execute "/root/libs/bk.sh /root/libs/KratosProxy.jar"
-                    put from: "/root/KratosProxy/build/libs/Kratos-shadowed-${version}.jar", into: "/root/libs/KratosProxy.jar"
-                }
-            }
-        }
+        // doLast {
+        //     ssh.run {
+        //         session(remotes.kratosmc) {
+        //             execute "/root/libs/bk.sh /root/libs/KratosProxy.jar"
+        //             put from: "/root/KratosProxy/build/libs/Kratos-shadowed-${version}.jar", into: "/root/libs/KratosProxy.jar"
+        //         }
+        //     }
+        // }
     }
 }

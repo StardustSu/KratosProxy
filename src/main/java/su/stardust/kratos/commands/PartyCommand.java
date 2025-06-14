@@ -4,7 +4,6 @@ import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.proxy.Player;
 import su.stardust.kratos.Kratos;
 import su.stardust.kratos.Text;
-import su.stardust.kratos.party.Party;
 import su.stardust.kratos.party.PartyManager;
 
 import java.util.List;
@@ -143,10 +142,12 @@ public class PartyCommand implements SimpleCommand {
         PartyManager.removePlayer(target.get());
         target.get().sendMessage(Text.of("&cВас кикнули из пати."));
         if (!party.getMembers().isEmpty()) {
-            PartyManager.broadcast(party, "&c" + player.getUsername() + " исключил " + target.get().getUsername() + " из пати.");
+            PartyManager.broadcast(party,
+                    "&c" + player.getUsername() + " исключил " + target.get().getUsername() + " из пати.");
             if (wasLeader) {
                 var newLeader = PartyManager.nameToPlayer(party.getLeader());
-                if (newLeader != null) newLeader.sendMessage(Text.of("&eТеперь вы лидер пати."));
+                if (newLeader != null)
+                    newLeader.sendMessage(Text.of("&eТеперь вы лидер пати."));
             }
         }
     }
@@ -208,7 +209,10 @@ public class PartyCommand implements SimpleCommand {
         if (args.length == 1) {
             return List.of("leave", "warp", "promote", "kick", "disband", "invite", "private");
         }
-        if (args.length == 2 && TARGET_COMMANDS.contains(args[0].toLowerCase())) {
+        if (args.length == 2 && switch (args[0].toLowerCase()) {
+            case "promote", "kick", "invite" -> true;
+            default -> false;
+        }) {
             var prefix = args[1];
             return Kratos.getServer().getAllPlayers().stream()
                     .map(Player::getUsername)

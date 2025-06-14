@@ -13,7 +13,7 @@ public class StreamListener {
         if (e.getInitialServer().isEmpty()) {
             var lobby = Kratos.pickLobby();
             if (lobby == null) {
-                e.getPlayer().disconnect(Text.of("&cСервер недоступен."));
+                e.getPlayer().disconnect(Text.of("&cСервер перезагружается, перезайдите позже."));
                 return;
             }
             e.setInitialServer(lobby);
