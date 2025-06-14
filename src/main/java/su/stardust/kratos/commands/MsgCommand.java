@@ -44,7 +44,7 @@ public class MsgCommand implements SimpleCommand {
     public List<String> suggest(Invocation invocation) {
         if (invocation.arguments().length == 1) {
             var name = invocation.arguments()[0];
-            if (name.length() < 3)
+            if (name.length() < 2)
                 return List.of();
 
             return Kratos.getServer().getAllPlayers()

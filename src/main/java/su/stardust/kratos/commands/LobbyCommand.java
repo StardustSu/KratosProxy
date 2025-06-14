@@ -3,9 +3,6 @@ package su.stardust.kratos.commands;
 import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.proxy.Player;
 import su.stardust.kratos.Kratos;
-import su.stardust.kratos.Text;
-
-import java.util.List;
 
 public class LobbyCommand implements SimpleCommand {
     @Override

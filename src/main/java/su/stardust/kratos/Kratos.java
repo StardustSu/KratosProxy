@@ -62,6 +62,8 @@ public class Kratos {
 
         server.getChannelRegistrar().register(KRATOS_BUILD);
         server.getChannelRegistrar().register(KRATOS_PLAY);
+
+        Messenger.send("status-updates", "{\"type\":\"proxy\",\"status\":\"online\"}");
     }
 
     @Subscribe
@@ -71,6 +73,7 @@ public class Kratos {
 
     public static void registerServer(String id, String address, int port) {
         StarLogger.debug("Registering " + id + " at " + address + ":" + port);
+        unregisterServer(id);
         _server.registerServer(new ServerInfo(id, new InetSocketAddress(address, port)));
     }
 
@@ -108,14 +111,12 @@ public class Kratos {
 
     public static String[] getRabbitSettings() {
         var env = System.getenv();
-        var host = env.getOrDefault("RABBIT_HOST", "ai.lampamc.ru");
+        var host = env.getOrDefault("RABBIT_HOST", "rabbit.lampamc.ru");
         var user = env.getOrDefault("RABBIT_USER", "kratos");
         var pass = env.getOrDefault("RABBIT_PASS", "u_)KgHeHk4qedZ");
         var vhost = env.getOrDefault("RABBIT_VHOST", "kratos");
-        return new String[]{host, user, pass, vhost};
+        return new String[] { host, user, pass, vhost };
     }
-
-
 
     public static @Nullable RegisteredServer pickLobby() {
         return _server.getAllServers().stream()
@@ -149,7 +150,8 @@ public class Kratos {
         var command = args[0].toUpperCase();
         switch (command) {
             case "SEND" -> {
-                if (args.length != 3) return;
+                if (args.length != 3)
+                    return;
                 var playerName = args[1];
                 var serverName = args[2];
                 var playerOpt = _server.getPlayer(playerName);
@@ -161,7 +163,8 @@ public class Kratos {
                 playerOpt.get().createConnectionRequest(serverOpt.get()).connectWithIndication();
             }
             case "REGISTER" -> {
-                if (args.length != 4) return;
+                if (args.length != 4)
+                    return;
                 var name = args[1];
                 var addr = args[2];
                 int port;
@@ -174,7 +177,8 @@ public class Kratos {
                 registerServer(name, addr, port);
             }
             case "UNREGISTER" -> {
-                if (args.length != 2) return;
+                if (args.length != 2)
+                    return;
                 var param = args[1];
                 if (_server.getServer(param).isPresent()) {
                     unregisterServer(param);
@@ -194,7 +198,8 @@ public class Kratos {
                 }
             }
             case "REDIRECT" -> {
-                if (args.length != 3) return;
+                if (args.length != 3)
+                    return;
                 var fromOpt = _server.getServer(args[1]);
                 var toOpt = _server.getServer(args[2]);
                 if (fromOpt.isEmpty() || toOpt.isEmpty()) {
